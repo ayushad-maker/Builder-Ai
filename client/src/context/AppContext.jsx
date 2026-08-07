@@ -168,7 +168,7 @@ export function AppContextProvider({ children }) {
         }
       }
     },
-    [user, navigate]
+    [user, navigate],
   );
 
   // ===========================
@@ -216,14 +216,13 @@ export function AppContextProvider({ children }) {
         console.error(error);
 
         toast.error(
-          error.response?.data?.error ||
-            "Failed to generate project"
+          error.response?.data?.error || "Failed to generate project",
         );
       } finally {
         setGeneratingProject(false);
       }
     },
-    [user, navigate]
+    [user, navigate],
   );
 
   // ===========================
@@ -236,9 +235,7 @@ export function AppContextProvider({ children }) {
       try {
         await api.delete(`/api/projects/${id}`);
 
-        setProjects((prev) =>
-          prev.filter((project) => project._id !== id)
-        );
+        setProjects((prev) => prev.filter((project) => project._id !== id));
 
         toast.success("Project deleted successfully");
       } catch (error) {
@@ -246,7 +243,7 @@ export function AppContextProvider({ children }) {
         toast.error("Failed to delete project");
       }
     },
-    [user]
+    [user],
   );
 
   return (
@@ -290,9 +287,7 @@ export function useAppContext() {
   const context = useContext(AppContext);
 
   if (context === undefined) {
-    throw new Error(
-      "useAppContext must be used within an AppContextProvider"
-    );
+    throw new Error("useAppContext must be used within an AppContextProvider");
   }
 
   return context;
