@@ -104,7 +104,7 @@ const PromptInput = ({
       />
 
       <button
-        onClick={() => handleSubmit}
+        onClick={handleSubmit}
         disabled={!value.trim() || loading}
         className="inline-flex items-center justify-center bg-zinc-950 text-white hover:bg-zinc-800 disabled:opacity-40 cursor-pointer rounded-full shrink-0"
         style={{
