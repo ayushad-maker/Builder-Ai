@@ -246,6 +246,31 @@ export function AppContextProvider({ children }) {
     [user],
   );
 
+  const handleChat = useCallback(
+    async (prompt) => {
+      if (!activeProject || user) return;
+      setChatLoading(true);
+      try {
+        const { data } = await api.post(
+          `/api/projects/${activeProject._id}/chat`,
+          { prompt },
+        );
+        setActiveProject(data);
+        if (data.errors && data.errors.length > 0) {
+          toast.error(`${data.errors.length} revison patch(es) failed`);
+        } else {
+          toast.success(`Updated to version ${data.version}`);
+        }
+      } catch (error) {
+        console.error("Revision request failed:", error);
+        toast.error(error?.response?.data?.error || "Revision request failed");
+      } finally {
+        setChatLoading(false);
+      }
+    },
+    [activeProject, user],
+  );
+
   return (
     <AppContext.Provider
       value={{
@@ -276,6 +301,7 @@ export function AppContextProvider({ children }) {
 
         showCode,
         setShowCode,
+        handleChat
       }}
     >
       {children}
