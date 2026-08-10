@@ -5,6 +5,7 @@ import Loading from "../components/Loading";
 import BuilderHeader from "../components/BuilderHeader";
 import { FolderTreeIcon, MessageSquareIcon } from "lucide-react";
 import ChatPannel from "../components/ChatPannel";
+import FileExplorer from "../components/FileExplorer";
 
 const BuilderPage = () => {
   const { id } = useParams();
@@ -104,10 +105,27 @@ const BuilderPage = () => {
                 loading={chatLoading}
               />
             ) : (
-              <div>File Explorer</div>
+              <FileExplorer
+                files={activeProject.files}
+                activeFile={activeFile}
+                onFileSelect={(path) => {
+                  setActiveFile(path);
+                  setShowCode(true);
+                }}
+              />
             )}
           </div>
         </div>
+          
+          {/* Preview / Code Area */}
+          <div>
+            {activeProject.status === "pending" || activeProject.status === "genrating" || activeProject.status === "failed" ? (
+              <Loading />
+            ) :(
+              <p>Preview panel</p>
+            )}
+          </div>
+
       </div>
     </div>
   );

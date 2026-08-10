@@ -271,6 +271,32 @@ export function AppContextProvider({ children }) {
     [activeProject, user],
   );
 
+  const debounceSave = React.useMemo(
+    () =>
+      debounce(async (files, id) => {
+        try {
+          await api.post(`/api/projects/${id}/files`, { files });
+        } catch (error) {
+          console.error("Failed to auto-save files:", error);
+          toast.error("Failed to save code notifications.");
+        }
+      }, 1000),
+    [],
+  );
+
+  useEffect(() => {
+    return () => {
+      debounceSave.cancel();
+    };
+  }, []);
+
+  const updateProjectFiles = useCallback(
+    async (files) => {
+      if(!activeProject || !user) return;
+      debounceSave(files,activeProject._id);
+    },[activeProject,user,debounceSave]
+  );
+
   return (
     <AppContext.Provider
       value={{
@@ -301,7 +327,8 @@ export function AppContextProvider({ children }) {
 
         showCode,
         setShowCode,
-        handleChat
+        handleChat,
+        updateProjectFiles
       }}
     >
       {children}
