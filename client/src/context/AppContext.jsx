@@ -1,3 +1,4 @@
+import React from "react";
 import {
   createContext,
   useCallback,
@@ -8,6 +9,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import api from "../api/api.js";
+import debounce from "lodash.debounce"
 
 const AppContext = createContext(undefined);
 
@@ -278,7 +280,7 @@ export function AppContextProvider({ children }) {
           await api.post(`/api/projects/${id}/files`, { files });
         } catch (error) {
           console.error("Failed to auto-save files:", error);
-          toast.error("Failed to save code notifications.");
+          toast.error("Failed to save code.");
         }
       }, 1000),
     [],

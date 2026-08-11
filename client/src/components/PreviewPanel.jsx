@@ -1,19 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { SandpackProvider, useSandpack } from "@codesandbox/sandpack-react";
+import {
+  SandpackCodeEditor,
+  SandpackLayout,
+  SandpackPreview,
+  SandpackProvider,
+  useSandpack,
+} from "@codesandbox/sandpack-react";
 import { detectDependencies } from "../utils/sandpackUtils";
 import { useAppContext } from "../context/AppContext";
+import SandpackErrorMonitor from "./SandpackErrorMonitor";
 
 // Watches for file edits inside Sandpack editor and save changes to DB & live state
 
 function SandpackFileWatcher({ onliveFilesChanges }) {
-  const { sandPack } = useSandpack();
-  const { files } = sandPack;
+  const { sandpack } = useSandpack();
+  const { files } = sandpack;
   const { activeProject, updateProjectFiles } = useAppContext();
 
   const activeProjectRef = useRef(activeProject);
 
   useEffect(() => {
-    activeProject.current = activeProject;
+    activeProjectRef.current = activeProject;
   }, [activeProject]);
 
   useEffect(() => {
@@ -39,7 +46,7 @@ function SandpackFileWatcher({ onliveFilesChanges }) {
     if (hasChanges) {
       updateProjectFiles(updatedFiles);
     }
-  }, [files]);
+  }, [files,onliveFilesChanges, updateProjectFiles]);
 
   return null;
 }
@@ -129,7 +136,35 @@ const PreviewPanel = ({ project, activeFile, showCode }) => {
             lineHeight: "1.6",
           },
         }}
-      ></SandpackProvider>
+      >
+        <SandpackFileWatcher onliveFilesChanges={handleLiveFilesChanges} />
+        <SandpackErrorMonitor onErrorChange={setShowErrorOverlay} />
+        <SandpackLayout
+          style={{
+            height: "100%",
+            border: "none",
+            borderRadius: 0,
+            background: "transparent",
+          }}
+        >
+          {showCode && (
+            <SandpackCodeEditor
+              showTabs
+              showLineNumbers
+              showInlineErrors
+              wrapContent
+              style={{ height: "100%", flex: 1, minWidth: 0 }}
+            />
+          )}
+          <SandpackPreview
+            showNavigator={false}
+            showRefreshButton
+            showOpenInCodeSandbox={false}
+            showSandpackErrorOverlay={showErrorOverlay}
+            style={{ height: "100%", flex: showCode ? 1 : 2, minWidth: 0 }}
+          />
+        </SandpackLayout>
+      </SandpackProvider>
     </div>
   );
 };

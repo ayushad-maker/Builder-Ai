@@ -6,6 +6,7 @@ import BuilderHeader from "../components/BuilderHeader";
 import { FolderTreeIcon, MessageSquareIcon } from "lucide-react";
 import ChatPannel from "../components/ChatPannel";
 import FileExplorer from "../components/FileExplorer";
+import PreviewPanel from "../components/PreviewPanel";
 
 const BuilderPage = () => {
   const { id } = useParams();
@@ -118,11 +119,11 @@ const BuilderPage = () => {
         </div>
           
           {/* Preview / Code Area */}
-          <div>
+          <div className="flex-1 overflow-hidden">
             {activeProject.status === "pending" || activeProject.status === "genrating" || activeProject.status === "failed" ? (
               <Loading />
             ) :(
-              <p>Preview panel</p>
+              <PreviewPanel project={activeProject} activeFile={activeFile} showCode={showCode}/>
             )}
           </div>
 
