@@ -397,7 +397,7 @@ export function AppContextProvider({ children }) {
   // Cancel pending save when provider unmounts.
   useEffect(() => {
     return () => {
-      debounceSave.cancel();
+      debounceSave.flush();
     };
   }, [debounceSave]);
 
