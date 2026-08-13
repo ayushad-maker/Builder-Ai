@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
 import {
   SandpackCodeEditor,
   SandpackLayout,
@@ -6,114 +6,113 @@ import {
   SandpackProvider,
   useSandpack,
 } from "@codesandbox/sandpack-react";
+
 import { detectDependencies } from "../utils/sandpackUtils";
 import { useAppContext } from "../context/AppContext";
 import SandpackErrorMonitor from "./SandpackErrorMonitor";
 
-// Watches for file edits inside Sandpack editor and save changes to DB & live state
-
-function SandpackFileWatcher({ onliveFilesChanges }) {
+/**
+ * Watches Sandpack files and saves them to the backend.
+ *
+ * IMPORTANT:
+ * This component does NOT update React state with the Sandpack files.
+ * Otherwise we create:
+ *
+ * Sandpack -> React state -> Sandpack -> React state...
+ *
+ * which can cause Sandpack to reset to App.js.
+ */
+function SandpackFileWatcher() {
   const { sandpack } = useSandpack();
   const { files } = sandpack;
+
   const { activeProject, updateProjectFiles } = useAppContext();
 
   const activeProjectRef = useRef(activeProject);
 
+  // Always keep the latest project in the ref.
   useEffect(() => {
     activeProjectRef.current = activeProject;
   }, [activeProject]);
 
   useEffect(() => {
     const project = activeProjectRef.current;
+
     if (!project) return;
+
     const updatedFiles = {};
-    let hasChanges = false;
 
     for (const [path, fileObj] of Object.entries(files)) {
-      const fileCode = fileObj.code;
-      updatedFiles[path] = fileCode;
-      const originalContent =
-        typeof project.files[path] === "string"
-          ? project.files[path]
-          : project.files[path]?.content;
-      if (originalContent !== undefined && originalContent !== fileCode) {
-        hasChanges = true;
-      }
+      updatedFiles[path] = fileObj.code;
     }
 
-    //Sync live files to parent
-    onliveFilesChanges(updatedFiles);
-    if (hasChanges) {
-      updateProjectFiles(updatedFiles);
-    }
-  }, [files,onliveFilesChanges, updateProjectFiles]);
+    // Save Sandpack's current files.
+    // updateProjectFiles already debounces the API request.
+    updateProjectFiles(updatedFiles);
+  }, [files, updateProjectFiles]);
 
   return null;
 }
 
 const PreviewPanel = ({ project, activeFile, showCode }) => {
   const [showErrorOverlay, setShowErrorOverlay] = useState(true);
-  //keep local state of files that updates as user types
-  const [liveFiles, setLiveFiles] = useState(project.files);
-  const [prevProjectKey, setPrevProjectKey] = useState(
-    `${project._id}-${project.version}`,
-  );
 
-  const currentKey = `${project._id}-${project.version}`;
-  if (prevProjectKey !== currentKey) {
-    setPrevProjectKey(currentKey);
-    setLiveFiles(project.files);
-  }
-
-  const handleLiveFilesChanges = (newFiles) => {
-    setLiveFiles((prev) => {
-      let changed = false;
-      for (const [p, code] of Object.entries(newFiles)) {
-        if (prev[p] !== code) {
-          changed = true;
-          break;
-        }
-      }
-      return changed ? newFiles : prev;
-    });
-  };
-
-  //convert liveFiles to sandPack format
-
+  /**
+   * Convert project.files into Sandpack's file format.
+   *
+   * IMPORTANT:
+   * We are using project.files directly.
+   * We are NOT doing:
+   *
+   * Sandpack -> liveFiles -> Sandpack
+   *
+   * because that can reset Sandpack's active file.
+   */
   const sandpackFiles = useMemo(() => {
     const spFiles = {};
-    for (const [path, content] of Object.entries(liveFiles)) {
+
+    for (const [path, content] of Object.entries(project.files || {})) {
       const fileCode =
-        typeof content === "string" ? content : content?.content || "";
+        typeof content === "string"
+          ? content
+          : content?.content || "";
+
       spFiles[path] = {
         code: fileCode,
-        active: path === activeFile,
       };
     }
-    return spFiles;
-  }, [liveFiles, activeFile]);
 
+    return spFiles;
+  }, [project.files]);
+
+  /**
+   * Detect dependencies from project files.
+   */
   const dependencies = useMemo(() => {
-    return detectDependencies(liveFiles);
-  }, [liveFiles]);
+    return detectDependencies(project.files || {});
+  }, [project.files]);
 
   return (
     <div className="h-full w-full">
       <SandpackProvider
-        key={project._id}
+        key={`${project._id}-${project.version}`}
         template="react"
         files={sandpackFiles}
-        customSetup={{ dependencies }}
+        customSetup={{
+          dependencies,
+        }}
         options={{
           externalResources: [
             "https://cdn.tailwindcss.com",
             "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css",
           ],
+
           classes: {
             "sp-wrapper": "sp-wrapper",
             "sp-layout": "sp-layout",
             "sp-preview": "sp-preview",
           },
+
           logLevel: 0,
         }}
         theme={{
@@ -129,16 +128,22 @@ const PreviewPanel = ({ project, activeFile, showCode }) => {
             error: "#ef4444",
             errorSurface: "#fef2f2",
           },
+
           font: {
-            body: "'Urbanist',system-ui,-apple-system,sans-serif",
-            mono: "'Geist Mono',ui-monospace,monospace",
+            body: "'Urbanist', system-ui, -apple-system, sans-serif",
+            mono: "'Geist Mono', ui-monospace, monospace",
             size: "13px",
             lineHeight: "1.6",
           },
         }}
       >
-        <SandpackFileWatcher onliveFilesChanges={handleLiveFilesChanges} />
-        <SandpackErrorMonitor onErrorChange={setShowErrorOverlay} />
+        {/* Watches Sandpack and autosaves changes */}
+        <SandpackFileWatcher />
+
+        <SandpackErrorMonitor
+          onErrorChange={setShowErrorOverlay}
+        />
+
         <SandpackLayout
           style={{
             height: "100%",
@@ -153,15 +158,24 @@ const PreviewPanel = ({ project, activeFile, showCode }) => {
               showLineNumbers
               showInlineErrors
               wrapContent
-              style={{ height: "100%", flex: 1, minWidth: 0 }}
+              style={{
+                height: "100%",
+                flex: 1,
+                minWidth: 0,
+              }}
             />
           )}
+
           <SandpackPreview
             showNavigator={false}
             showRefreshButton
             showOpenInCodeSandbox={false}
             showSandpackErrorOverlay={showErrorOverlay}
-            style={{ height: "100%", flex: showCode ? 1 : 2, minWidth: 0 }}
+            style={{
+              height: "100%",
+              flex: showCode ? 1 : 2,
+              minWidth: 0,
+            }}
           />
         </SandpackLayout>
       </SandpackProvider>

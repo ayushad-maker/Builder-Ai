@@ -7,6 +7,11 @@ import { FolderTreeIcon, MessageSquareIcon } from "lucide-react";
 import ChatPannel from "../components/ChatPannel";
 import FileExplorer from "../components/FileExplorer";
 import PreviewPanel from "../components/PreviewPanel";
+import AgentProgressDashboard from "../components/AgentProgressDashboard";
+import PublishModal from "../components/PublishModal";
+import api from "../api/api";
+import toast from "react-hot-toast";
+import { exportProjectZip } from "../utils/exportProject";
 
 const BuilderPage = () => {
   const { id } = useParams();
@@ -48,12 +53,29 @@ const BuilderPage = () => {
 
   const handleOpenPreview = () => {
     if (!id) return;
-    window.open(`/preview/${id}`, "_blank");
+    window.open(`/preview/${id}`, "_blank", "noopener,noreferrer");
   };
 
-  const handlePublish = () => {};
+  const handlePublish = async () => {
+    if (!id) return;
+    setPublishing(true);
+    try {
+      await api.post(`/api/projects/${id}/publish`);
+      const url = `${window.location.origin}/publish/${id}`;
+      setPublishUrl(url);
+      toast.success("website published successfully.");
+    } catch (error) {
+      console.log("Publish failed", error);
+      toast.error(error?.response?.data?.error || "publish failed");
+    } finally {
+      setPublishing(false);
+    }
+  };
 
-  const handleDownload = () => {};
+  const handleDownload = () => {
+    if (!activeProject) return;
+    exportProjectZip(activeProject);
+  };
 
   if (loadingActiveProject || !activeProject) {
     return <Loading />;
@@ -117,17 +139,29 @@ const BuilderPage = () => {
             )}
           </div>
         </div>
-          
-          {/* Preview / Code Area */}
-          <div className="flex-1 overflow-hidden">
-            {activeProject.status === "pending" || activeProject.status === "genrating" || activeProject.status === "failed" ? (
-              <Loading />
-            ) :(
-              <PreviewPanel project={activeProject} activeFile={activeFile} showCode={showCode}/>
-            )}
-          </div>
 
+        {/* Preview / Code Area */}
+        <div className="flex-1 overflow-hidden">
+          {activeProject.status === "pending" ||
+          activeProject.status === "genrating" ||
+          activeProject.status === "failed" ? (
+            <AgentProgressDashboard project={activeProject} />
+          ) : (
+            <PreviewPanel
+              project={activeProject}
+              activeFile={activeFile}
+              showCode={showCode}
+            />
+          )}
+        </div>
       </div>
+
+      {publishUrl && (
+        <PublishModal
+          publishUrl={publishUrl}
+          onClose={() => setPublishUrl(null)}
+        />
+      )}
     </div>
   );
 };

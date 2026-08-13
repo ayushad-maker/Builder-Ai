@@ -40,6 +40,7 @@ const BuilderHeader = ({
 
       <div className="flex items-center gap-1.5">
         <button
+        onClick={onToggleShowCode}
           className={`inline-flex items-center justify-center gap-1.5 py-1.5 px-3 border border-zinc-200 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 text-xs font-medium rounded-lg cursor-pointer bg-white ${showCode ? "bg-zinc-100 text-zinc-900" : ""}`}
         >
           {showCode ? (

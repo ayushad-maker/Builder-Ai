@@ -1,15 +1,17 @@
-import React from "react";
-import {
+import React, {
   createContext,
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
+
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import debounce from "lodash.debounce";
+
 import api from "../api/api.js";
-import debounce from "lodash.debounce"
 
 const AppContext = createContext(undefined);
 
@@ -19,30 +21,37 @@ export function AppContextProvider({ children }) {
   // ===========================
   // Auth State
   // ===========================
+
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
   // ===========================
   // Project State
   // ===========================
+
   const [projects, setProjects] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
 
   const [activeProject, setActiveProject] = useState(null);
-  const [loadingActiveProject, setLoadingActiveProject] = useState(false);
+  const [loadingActiveProject, setLoadingActiveProject] =
+    useState(false);
 
   const [chatLoading, setChatLoading] = useState(false);
-  const [generatingProject, setGeneratingProject] = useState(false);
+  const [generatingProject, setGeneratingProject] =
+    useState(false);
 
   const [activeFile, setActiveFile] = useState("/App.js");
+
   const [showCode, setShowCode] = useState(false);
 
   // ===========================
   // Check Session
   // ===========================
+
   const checkSessions = async () => {
     try {
       const { data } = await api.get("/api/auth/me");
+
       setUser(data.user);
     } catch (error) {
       setUser(null);
@@ -58,6 +67,7 @@ export function AppContextProvider({ children }) {
   // ===========================
   // Login
   // ===========================
+
   const Login = async (email, password) => {
     try {
       const { data } = await api.post("/api/auth/login", {
@@ -66,10 +76,15 @@ export function AppContextProvider({ children }) {
       });
 
       setUser(data.user);
+
       toast.success("Login Successful");
+
       navigate("/");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Login Failed");
+      toast.error(
+        error.response?.data?.message || "Login Failed"
+      );
+
       setUser(null);
     }
   };
@@ -77,6 +92,7 @@ export function AppContextProvider({ children }) {
   // ===========================
   // Register
   // ===========================
+
   const Register = async (name, email, password) => {
     try {
       const { data } = await api.post("/api/auth/register", {
@@ -86,10 +102,15 @@ export function AppContextProvider({ children }) {
       });
 
       setUser(data.user);
+
       toast.success("Registration Successful");
+
       navigate("/");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Registration Failed");
+      toast.error(
+        error.response?.data?.message || "Registration Failed"
+      );
+
       setUser(null);
     }
   };
@@ -97,6 +118,7 @@ export function AppContextProvider({ children }) {
   // ===========================
   // Logout
   // ===========================
+
   const logout = async () => {
     try {
       await api.post("/api/auth/logout");
@@ -106,9 +128,11 @@ export function AppContextProvider({ children }) {
       setActiveProject(null);
 
       toast.success("Logged out successfully");
+
       navigate("/login");
     } catch (error) {
       console.error(error);
+
       toast.error("Logout Failed");
     }
   };
@@ -116,6 +140,7 @@ export function AppContextProvider({ children }) {
   // ===========================
   // Load Projects
   // ===========================
+
   const loadProjects = useCallback(async () => {
     if (!user) return;
 
@@ -123,9 +148,11 @@ export function AppContextProvider({ children }) {
 
     try {
       const { data } = await api.get("/api/projects");
+
       setProjects(data);
     } catch (error) {
       console.error(error);
+
       toast.error("Failed to load projects");
     } finally {
       setLoadingProjects(false);
@@ -135,6 +162,7 @@ export function AppContextProvider({ children }) {
   // ===========================
   // Load Single Project
   // ===========================
+
   const loadProject = useCallback(
     async (id, silent = false) => {
       if (!user) return;
@@ -144,7 +172,9 @@ export function AppContextProvider({ children }) {
       }
 
       try {
-        const { data } = await api.get(`/api/projects/${id}`);
+        const { data } = await api.get(
+          `/api/projects/${id}`
+        );
 
         setActiveProject(data);
 
@@ -152,8 +182,17 @@ export function AppContextProvider({ children }) {
 
         if (files.length > 0) {
           setActiveFile((prev) => {
-            if (files.includes(prev)) return prev;
-            if (files.includes("/App.js")) return "/App.js";
+            // Keep currently selected file if it still exists.
+            if (files.includes(prev)) {
+              return prev;
+            }
+
+            // Otherwise use App.js.
+            if (files.includes("/App.js")) {
+              return "/App.js";
+            }
+
+            // Otherwise use the first file.
             return files[0];
           });
         }
@@ -162,6 +201,7 @@ export function AppContextProvider({ children }) {
 
         if (!silent) {
           toast.error("Failed to load project");
+
           navigate("/");
         }
       } finally {
@@ -170,14 +210,17 @@ export function AppContextProvider({ children }) {
         }
       }
     },
-    [user, navigate],
+    [user, navigate]
   );
 
   // ===========================
   // Poll Project Status
   // ===========================
+
   useEffect(() => {
-    if (!activeProject?._id || !user) return;
+    if (!activeProject?._id || !user) {
+      return;
+    }
 
     const ongoing =
       activeProject.status === "pending" ||
@@ -195,12 +238,20 @@ export function AppContextProvider({ children }) {
       loadProject(activeProject._id, true);
     }, 2000);
 
-    return () => clearInterval(interval);
-  }, [activeProject?._id, activeProject?.status, loadProject, user]);
+    return () => {
+      clearInterval(interval);
+    };
+  }, [
+    activeProject?._id,
+    activeProject?.status,
+    loadProject,
+    user,
+  ]);
 
   // ===========================
   // Generate Project
   // ===========================
+
   const handleGenerate = useCallback(
     async (prompt) => {
       if (!user) return;
@@ -212,24 +263,29 @@ export function AppContextProvider({ children }) {
           prompt,
         });
 
-        toast.success("AI Agent is planning your project...");
+        toast.success(
+          "AI Agent is planning your project..."
+        );
+
         navigate(`/builder/${data._id}`);
       } catch (error) {
         console.error(error);
 
         toast.error(
-          error.response?.data?.error || "Failed to generate project",
+          error.response?.data?.error ||
+            "Failed to generate project"
         );
       } finally {
         setGeneratingProject(false);
       }
     },
-    [user, navigate],
+    [user, navigate]
   );
 
   // ===========================
   // Delete Project
   // ===========================
+
   const handleDelete = useCallback(
     async (id) => {
       if (!user) return;
@@ -237,112 +293,234 @@ export function AppContextProvider({ children }) {
       try {
         await api.delete(`/api/projects/${id}`);
 
-        setProjects((prev) => prev.filter((project) => project._id !== id));
+        setProjects((prev) =>
+          prev.filter(
+            (project) => project._id !== id
+          )
+        );
 
-        toast.success("Project deleted successfully");
+        toast.success(
+          "Project deleted successfully"
+        );
       } catch (error) {
         console.error(error);
+
         toast.error("Failed to delete project");
       }
     },
-    [user],
+    [user]
   );
+
+  // ===========================
+  // Chat / Revision
+  // ===========================
 
   const handleChat = useCallback(
     async (prompt) => {
-      if (!activeProject || user) return;
+      // FIXED:
+      // Your old code had:
+      //
+      // if (!activeProject || user) return;
+      //
+      // which returns whenever user exists.
+      if (!activeProject || !user) return;
+
       setChatLoading(true);
+
       try {
         const { data } = await api.post(
           `/api/projects/${activeProject._id}/chat`,
-          { prompt },
+          {
+            prompt,
+          }
         );
+
         setActiveProject(data);
-        if (data.errors && data.errors.length > 0) {
-          toast.error(`${data.errors.length} revison patch(es) failed`);
+
+        if (
+          data.errors &&
+          data.errors.length > 0
+        ) {
+          toast.error(
+            `${data.errors.length} revision patch(es) failed`
+          );
         } else {
-          toast.success(`Updated to version ${data.version}`);
+          toast.success(
+            `Updated to version ${data.version}`
+          );
         }
       } catch (error) {
-        console.error("Revision request failed:", error);
-        toast.error(error?.response?.data?.error || "Revision request failed");
+        console.error(
+          "Revision request failed:",
+          error
+        );
+
+        toast.error(
+          error?.response?.data?.error ||
+            "Revision request failed"
+        );
       } finally {
         setChatLoading(false);
       }
     },
-    [activeProject, user],
+    [activeProject, user]
   );
 
-  const debounceSave = React.useMemo(
+  // ===========================
+  // Debounced Autosave
+  // ===========================
+
+  const debounceSave = useMemo(
     () =>
       debounce(async (files, id) => {
         try {
-          await api.post(`/api/projects/${id}/files`, { files });
+          await api.put(
+            `/api/projects/${id}/files`,
+            {
+              files,
+            }
+          );
         } catch (error) {
-          console.error("Failed to auto-save files:", error);
-          toast.error("Failed to save code.");
+          console.error(
+            "Failed to auto-save files:",
+            error
+          );
+
+          toast.error(
+            "Failed to save code."
+          );
         }
       }, 1000),
-    [],
+    []
   );
 
+  // Cancel pending save when provider unmounts.
   useEffect(() => {
     return () => {
       debounceSave.cancel();
     };
-  }, []);
+  }, [debounceSave]);
+
+  // ===========================
+  // Update Project Files
+  // ===========================
 
   const updateProjectFiles = useCallback(
-    async (files) => {
-      if(!activeProject || !user) return;
-      debounceSave(files,activeProject._id);
-    },[activeProject,user,debounceSave]
+    (files) => {
+      if (!activeProject || !user) {
+        return;
+      }
+
+      // IMPORTANT:
+      // We only save to the backend.
+      //
+      // We DO NOT call setActiveProject here.
+      //
+      // This prevents:
+      //
+      // Editor
+      //   ↓
+      // API
+      //   ↓
+      // setActiveProject
+      //   ↓
+      // Sandpack reset
+      //
+      debounceSave(
+        files,
+        activeProject._id
+      );
+    },
+    [
+      activeProject,
+      user,
+      debounceSave,
+    ]
+  );
+
+  // ===========================
+  // Context Value
+  // ===========================
+
+  const contextValue = useMemo(
+    () => ({
+      user,
+      loadingUser,
+
+      Login,
+      Register,
+      logout,
+
+      projects,
+      loadingProjects,
+      loadProjects,
+
+      activeProject,
+      loadingActiveProject,
+      loadProject,
+
+      chatLoading,
+
+      generatingProject,
+      handleGenerate,
+
+      handleDelete,
+
+      activeFile,
+      setActiveFile,
+
+      showCode,
+      setShowCode,
+
+      handleChat,
+
+      updateProjectFiles,
+    }),
+    [
+      user,
+      loadingUser,
+
+      projects,
+      loadingProjects,
+      loadProjects,
+
+      activeProject,
+      loadingActiveProject,
+      loadProject,
+
+      chatLoading,
+
+      generatingProject,
+      handleGenerate,
+
+      handleDelete,
+
+      activeFile,
+      showCode,
+
+      handleChat,
+      updateProjectFiles,
+    ]
   );
 
   return (
-    <AppContext.Provider
-      value={{
-        user,
-        loadingUser,
-
-        Login,
-        Register,
-        logout,
-
-        projects,
-        loadingProjects,
-        loadProjects,
-
-        activeProject,
-        loadingActiveProject,
-        loadProject,
-
-        chatLoading,
-
-        generatingProject,
-        handleGenerate,
-
-        handleDelete,
-
-        activeFile,
-        setActiveFile,
-
-        showCode,
-        setShowCode,
-        handleChat,
-        updateProjectFiles
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );
 }
 
+// ===========================
+// useAppContext
+// ===========================
+
 export function useAppContext() {
   const context = useContext(AppContext);
 
   if (context === undefined) {
-    throw new Error("useAppContext must be used within an AppContextProvider");
+    throw new Error(
+      "useAppContext must be used within an AppContextProvider"
+    );
   }
 
   return context;
