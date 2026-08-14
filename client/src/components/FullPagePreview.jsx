@@ -1,6 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { detectDependencies } from "../utils/sandpackUtils";
 import SandpackErrorMonitor from "./SandpackErrorMonitor";
+import {
+  SandpackPreview,
+  SandpackProvider,
+  SandpackLayout,
+} from "@codesandbox/sandpack-react";
 
 const FullPagePreview = ({ files }) => {
   const [showErrorOverlay, setShowErrorOverlay] = useState(true);
