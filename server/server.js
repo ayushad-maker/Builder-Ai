@@ -12,7 +12,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use("/api/auth", authRouter);
 
-connectToDatabase();
+await connectToDatabase();
 
 app.get("/", (req, res) => res.send("Server is Live"));
 
