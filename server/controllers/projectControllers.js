@@ -3,7 +3,11 @@
 
 import { Project } from "../models/Project.js";
 
-export async function creationProject(req, res) {
+function hashContent(content) {
+  return crypto.createHash("md5").update(content).digest("hex").slice(0, 12);
+}
+
+export async function createProject(req, res) {
   const prompt = req.body;
   if (!prompt || !typeof prompt !== "string") {
     res.status(400).json({
@@ -160,14 +164,123 @@ export async function deleteProject(req, res) {
 //put /api/project/:id/files
 //update project files (manuel edits)
 
-export async function updateProjectFiles(req, res) {}
+export async function updateProjectFiles(req, res) {
+  const { files } = req.body;
+  if (!files || typeof files !== "object") {
+    res.status(400).json({
+      message: "Object files is required",
+    });
+    return;
+  }
+
+  if (!req.user) {
+    res.status(401).json({
+      message: "Unauthorize",
+    });
+    return;
+  }
+
+  const project = await Project.findById({
+    _id: req.params.id,
+    owner: req.user.userId,
+  });
+  if (!project) {
+    res.status(404).json({
+      error: "Project Not found",
+    });
+    return;
+  }
+
+  // Rebuild project files map with content and hashes
+
+  const newFiles = {};
+  for (const [path, content] of Object.entries(project)) {
+    if (typeof content === "string") {
+      newFiles[path] = { content, hash: hashContent(content) };
+    }
+  }
+
+  project.files = newFiles;
+  await project.save();
+
+  const filesObj = {};
+  for (const [path, entry] of Object.entries(project.files)) {
+    if (typeof content === "string") {
+      filesObj[path] = entry.content;
+    }
+  }
+
+  res.json({
+    _id: project._id,
+    name: project.name,
+    description: project.description,
+    files: filesObj,
+    messages: project.messages,
+    version: project.version,
+    createdAt: project.createdAt,
+    updatedAt: project.updatedAt,
+  });
+}
 
 //post /api/project/:id/publish
 // mark a project as publicly published
 
-export async function publishProject(req, res) {}
+export async function publishProject(req, res) {
+  if (!req.user) {
+    res.status(400).json({
+      error: "Unauthorized",
+    });
+    return;
+  }
+
+  const project = await Project.findByIdAndUpdate(
+    {
+      _id: req.params.id,
+      owner: req.user.userId,
+    },
+    { published: true },
+    { returnDocument: "after" },
+  );
+
+  if (!project) {
+    res.status(400).json({
+      error: "project is not found",
+    });
+    return;
+  }
+
+  res.json({ success: true, published: project.published });
+}
 
 // post /api/projects/public/:id
 // get a publicly published project details (without auth)
 
-export async function getPublicProject(req, res) {}
+export async function getPublicProject(req, res) {
+  const project = await Project.findById(req.params.id);
+  if (!project) {
+    res.json(404).json({
+      error: "Project not found",
+    });
+    return;
+  }
+
+  if (!project.published) {
+    res.json(404).json({
+      error: "project is not published yet",
+    });
+    return;
+  }
+
+  const filesObj = {};
+  for (const [path, entry] of Object.entries(project.files)) {
+    filesObj[path] = entry.content;
+  }
+
+  res.json({
+    _id: project._id,
+    name: project.name,
+    description: project.description,
+    files: filesObj,
+    version: project.version,
+  });
+}
