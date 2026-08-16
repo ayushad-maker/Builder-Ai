@@ -1,17 +1,21 @@
-import { Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const MessageSchema = new Schema(
   {
     role: { type: String, enum: ["user", "assistant"], required: true },
     content: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now() },
+    timestamp: { type: Date, default: Date.now},
   },
   { _id: false },
 );
 
-const projectFile = new Schema({
-
-})
+const PlannedFileSchema = new Schema(
+  {
+    path: { type: String, required: true },
+    description: { type: String, required: true },
+  },
+  { _id: false },
+);
 
 const ProjectSchema = new Schema({
   name: { type: String, required: true, default: "Untitled Project" },
@@ -26,8 +30,10 @@ const ProjectSchema = new Schema({
     enum: ["pending", "genrating", "revising", "completed", "failed"],
     default: "pending",
   },
-  filesPlanned: { type: [], default: [] },
+  filesPlanned: { type: [PlannedFileSchema], default: [] },
+  filesGenerated: { type: [String], default: [] },
   currentFile: { type: String, default: null },
-  error:{type:String,default:null}
+  error: { type: String, default: null },
 });
 
+export const Project = mongoose.model("Project", ProjectSchema);
