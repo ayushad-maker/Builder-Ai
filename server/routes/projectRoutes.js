@@ -7,8 +7,8 @@ import {
   listProjects,
   publishProject,
   updateProjectFiles,
-} from "../controllers/projectControllers";
-import { authMiddleware } from "../middleware/authMiddleware";
+} from "../controllers/projectControllers.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const projectRouter = Router();
 
@@ -21,9 +21,9 @@ projectRouter.use(authMiddleware);
 
 projectRouter.post("/", createProject);
 projectRouter.get("/", listProjects);
-projectRouter.post("/:id", getProject);
-projectRouter.post("/:id", deleteProject);
-projectRouter.post("/:id/files", updateProjectFiles);
+projectRouter.get("/:id", getProject);
+projectRouter.delete("/:id", deleteProject);
+projectRouter.put("/:id/files", updateProjectFiles);
 projectRouter.post("/:id/publish", publishProject);
 
 export default projectRouter;
