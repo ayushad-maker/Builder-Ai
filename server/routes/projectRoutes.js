@@ -15,7 +15,7 @@ const projectRouter = Router();
 
 // Public Route
 
-projectRouter.get("public/:id", getPublicProject);
+projectRouter.get("/public/:id", getPublicProject);
 
 // Protect all following Routes
 projectRouter.use(authMiddleware);
