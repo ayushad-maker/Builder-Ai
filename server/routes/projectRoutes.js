@@ -9,6 +9,7 @@ import {
   updateProjectFiles,
 } from "../controllers/projectControllers.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import { chat } from "../controllers/chatControllers.js";
 
 const projectRouter = Router();
 
@@ -25,5 +26,9 @@ projectRouter.get("/:id", getProject);
 projectRouter.delete("/:id", deleteProject);
 projectRouter.put("/:id/files", updateProjectFiles);
 projectRouter.post("/:id/publish", publishProject);
+
+//chat
+
+projectRouter.post("/:id/chat", chat);
 
 export default projectRouter;
