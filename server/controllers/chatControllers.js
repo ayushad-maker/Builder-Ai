@@ -3,7 +3,7 @@ import { reviseProject } from "../services/ai.js";
 import { applyOperations } from "../services/diff.js";
 
 export function buildManiFest(files) {
-  const manifest = {};
+  const manifest = [];
   for (const [path, entry] of Object.entries(files)) {
     manifest.push({ path, hash: entry.hash, size: entry.content.length });
   }
@@ -11,7 +11,7 @@ export function buildManiFest(files) {
 }
 
 export async function chat(req, res) {
-  const prompt = req.body;
+  const { prompt } = req.body;
 
   if (!prompt || typeof prompt !== "string") {
     res.status(400).json({
@@ -33,7 +33,7 @@ export async function chat(req, res) {
   });
 
   if (!project) {
-    req.status(404).json({
+    res.status(404).json({
       error: "Project Not found",
     });
     return;
@@ -54,17 +54,17 @@ export async function chat(req, res) {
     const manifest = buildManiFest(project.files);
 
     const relevantFiles = {};
-    for (const [path, entry] of Object.entries(files)) {
+    for (const [path, entry] of Object.entries(project.files)) {
       relevantFiles[path] = entry.content;
     }
 
-    const recentMessages = project.recent.slice(-4).map((m) => ({
+    const recentMessages = project.messages.slice(-4).map((m) => ({
       role: m.role,
       content: m.content,
     }));
 
     console.log(
-      `[AI] Revising project ${project._id}: "${project.slice(0, 80)}...` +
+      `[AI] Revising project ${project._id}: "${prompt.slice(0, 80)}...` +
         `(${manifest.length} files, manifest ~${JSON.stringify(manifest).length} chars`,
     );
 
@@ -128,7 +128,7 @@ export async function chat(req, res) {
     });
   } catch (error) {
     console.error(`[AI Revision Error] ${error.message}`);
-    project.status = "completed";
+    project.status = "failed";
     await project.save();
     res
       .status(500)
